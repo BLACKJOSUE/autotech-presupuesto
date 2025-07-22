@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Autotech JD - Presupuesto Automotriz</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif;
+      background: #fff; color: #333; font-size: 13px; line-height: 1.4;
+    }
+    header {
+      background: #800000; color: #fff;
+      padding: 1rem; display: flex;
+      justify-content: space-between; align-items: center;
+    }
+    .logo { font-size: 1.5rem; font-weight: bold; }
+    .container { padding: 1rem; max-width: 1000px; margin: auto; }
+    .section { margin-bottom: 1rem; }
+    .section-title { font-weight: bold; color: #800000; margin-bottom: 0.5rem; }
+    label { display: block; margin-bottom: 0.25rem; font-weight: bold; }
+    input, select { padding: 0.5rem; margin-bottom: 0.5rem; width: 100%; max-width: 400px; border: 1px solid #ccc; border-radius: 5px; }
+    button {
+      background: #800000; color: #fff; padding: 0.5rem 1rem; border: none;
+      border-radius: 5px; cursor: pointer;
+    }
+    button:hover { background: #a00000; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Autotech JD</div>
+    <div><input type="file" id="logoUpload" accept="image/*"></div>
+  </header>
+
+  <div class="container">
+    <div class="section">
+      <div class="section-title">Datos del Cliente</div>
+      <label>Nombre:</label>
+      <input id="cliente" type="text">
+      <label>Teléfono:</label>
+      <input id="telefono" type="text">
+    </div>
+
+    <div class="section">
+      <div class="section-title">Información del Vehículo</div>
+      <label>Año:</label>
+      <input id="anio" type="text">
+      <label>Marca:</label>
+      <select id="marca"></select>
+      <label>Modelo:</label>
+      <select id="modelo"></select>
+      <label>Versión:</label>
+      <input id="version" type="text">
+    </div>
+
+    <div class="section">
+      <div class="section-title">Mano de Obra</div>
+      <div id="manoObraContainer"></div>
+      <button onclick="agregarManoObra()">Agregar Mano de Obra</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Repuestos</div>
+      <div id="repuestosContainer"></div>
+      <button onclick="agregarRepuesto()">Agregar Repuesto</button>
+    </div>
+
+    <div class="section">
+      <button onclick="generarPDF()">Generar PDF</button>
+    </div>
+  </div>
+
+<script>
+const marcasModelos = {
+  "Ford": ["Focus","Fusion","Mustang"],
+  "Chevrolet": ["Malibu","Cruze","Tahoe"],
+  "Toyota": ["Corolla","Camry","RAV4"],
+  "Honda": ["Civic","Accord","CR-V"],
+  "Nissan": ["Altima","Sentra","Rogue"],
+  "Jeep": ["Wrangler","Cherokee","Compass"],
+  "GMC": ["Sierra","Acadia"],
+  "RAM": ["1500","2500"],
+  "Dodge": ["Charger","Durango"],
+  "Hyundai": ["Elantra","Sonata","Tucson"],
+  "Kia": ["Rio","Forte","Sportage"],
+  "Volkswagen": ["Jetta","Passat","Tiguan"],
+  "Subaru": ["Impreza","Outback"],
+  "BMW": ["320","X5"],
+  "Mercedes-Benz": ["C-Class","E-Class"],
+  "Audi": ["A4","Q5"],
+  "Lexus": ["IS","RX"],
+  "Mazda": ["3","CX-5"],
+  "Acura": ["ILX","MDX"],
+  "Infiniti": ["Q50","QX60"],
+  "Tesla": ["Model 3","Model Y"]
+};
+
+const marcaSelect = document.getElementById("marca");
+const modeloSelect = document.getElementById("modelo");
+for(const m of Object.keys(marcasModelos)){
+  const opt = document.createElement("option");
+  opt.value = m; opt.text = m;
+  marcaSelect.appendChild(opt);
+}
+marcaSelect.onchange = ()=>{
+  modeloSelect.innerHTML = "";
+  for(const mod of marcasModelos[marcaSelect.value]){
+    const opt = document.createElement("option");
+    opt.value = mod; opt.text = mod;
+    modeloSelect.appendChild(opt);
+  }
+};
+
+function agregarManoObra(){
+  document.getElementById("manoObraContainer").innerHTML +=
+    '<input type="text" placeholder="Descripción" class="desc">'+
+    '<input type="number" placeholder="Horas" class="horas"><br>';
+}
+function agregarRepuesto(){
+  document.getElementById("repuestosContainer").innerHTML +=
+    '<input type="text" placeholder="Descripción" class="desc">'+
+    '<input type="number" placeholder="Cantidad" class="cantidad">'+
+    '<input type="number" placeholder="Precio unitario" class="precio"><br>';
+}
+
+async function generarPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const cliente = document.getElementById("cliente").value;
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(12);
+  doc.text("Autotech JD",15,15);
+  doc.setFont("helvetica","normal");
+  doc.text("Tel: 9549552617",15,22);
+  doc.text("Cliente: "+cliente,140,15);
+  doc.text("Vehículo: "+document.getElementById("anio").value+" "+
+    document.getElementById("marca").value+" "+
+    document.getElementById("modelo").value+" "+
+    document.getElementById("version").value,15,35);
+
+  let y = 45;
+  let subtotal = 0;
+  const horas = document.querySelectorAll(".horas");
+  const descs = document.querySelectorAll("#manoObraContainer .desc");
+  doc.setFont("helvetica","bold");
+  doc.text("Mano de Obra",15,y);
+  y+=10;
+  descs.forEach((d,i)=>{
+    const h=parseFloat(horas[i].value)||0;
+    const p=50*h;
+    subtotal+=p;
+    doc.setFont("helvetica","normal");
+    doc.text(`- ${d.value} (${h}h)`,20,y);
+    doc.text(`$${p.toFixed(2)}`,180,y,null,null,"right");
+    y+=7;
+  });
+
+  y+=10;
+  doc.setFont("helvetica","bold");
+  doc.text("Repuestos",15,y);
+  y+=10;
+  const repuestos = document.querySelectorAll("#repuestosContainer .desc");
+  const cantidades = document.querySelectorAll(".cantidad");
+  const precios = document.querySelectorAll(".precio");
+  repuestos.forEach((d,i)=>{
+    const c=parseFloat(cantidades[i].value)||0;
+    const p=parseFloat(precios[i].value)||0;
+    const total=c*p;
+    subtotal+=total;
+    doc.setFont("helvetica","normal");
+    doc.text(`- ${d.value} (${c} x $${p})`,20,y);
+    doc.text(`$${total.toFixed(2)}`,180,y,null,null,"right");
+    y+=7;
+  });
+
+  y+=10;
+  const tax=subtotal*0.07;
+  const total=subtotal+tax;
+  doc.setFont("helvetica","bold");
+  doc.text("Subtotal:",140,y); doc.text(`$${subtotal.toFixed(2)}`,180,y,null,null,"right"); y+=7;
+  doc.text("Tax (7%):",140,y); doc.text(`$${tax.toFixed(2)}`,180,y,null,null,"right"); y+=7;
+  doc.text("Total:",140,y); doc.text(`$${total.toFixed(2)}`,180,y,null,null,"right"); y+=20;
+
+  doc.setFont("helvetica","italic");
+  doc.setTextColor("#800000");
+  doc.text("Si pagaste por la revisión previa, se te descontará del precio final.",15,y);
+  doc.save("Presupuesto_AutotechJD.pdf");
+}
+</script>
+</body>
+</html>
